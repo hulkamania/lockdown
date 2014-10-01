@@ -39,6 +39,7 @@ configuration
 /opt/lockdown/conf/main.conf:
 
 property | description
+-------- | -----------
 log_only | do not block any connections
 violation_handler | TODO future releases
 default | default action for non TCP/UDP connections, 1=ALLOW, 0=BLOCK
