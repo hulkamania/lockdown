@@ -1,0 +1,100 @@
+#!/usr/bin/python
+
+import sys, signal, optparse
+
+from   ldui.logreader import LogReader
+from   ldui.common    import LogDateError, LogMissingError
+from   dpkt.ip        import IP_PROTO_TCP, IP_PROTO_UDP
+
+# globals
+log_reader     = None
+proto_names    = { IP_PROTO_TCP : 'tcp', IP_PROTO_UDP : 'udp' }
+commands       = (  )
+
+def print_log(raw):
+    '''Print the entire log'''
+    if not raw:
+        print "%-5s %-10s %-6s %-6s %-16s %-7s %24s %s" % ( 'id', 'user', 'proto', 'dport', 'dest', 'outcome', 'date', 'binary' )
+
+    for log in log_reader.get_all():
+        if raw:
+            print repr(log)
+        else:
+            print "%-5s %-10s %-6s %-6s %-16s %-7s %24s %s" % ( log['id'], log['user'], log['proto'], log['dport'],
+                                                                log['dest'], log['outcome'], log['date'], log['bin'] )
+
+def print_ports(raw):
+    '''Print the ports per binary'''
+    binaries = log_reader.get_ports()
+    for ( path, protos ) in binaries.iteritems():
+        if raw:
+            print repr(path)
+            print repr(protos)
+        else:
+            for ( proto, ports ) in protos.iteritems():
+                ( p, c ) = ports.popitem()
+                print "%s %5s %5s %s"  % ( proto_names[proto], p, c, path )
+                for ( port, count ) in ports.iteritems():
+                    print "%9s %5s" % ( port, count )
+
+def print_dest(raw):
+    '''Print the destinations per binary'''
+    binaries = log_reader.get_dest()
+    for ( path, dests ) in binaries.iteritems():
+        if raw:
+            print repr(path)
+            print repr(dests)
+        else:
+            for ( dest, protos ) in dests.iteritems():
+                print "%16s %s" % ( dest, path )
+                for ( proto, ports ) in protos.iteritems():
+                    ( p, c ) = ports.popitem()
+                    print "%10s %5s %5s"  % ( proto_names[proto], p, c )
+                    for ( port, count ) in ports.iteritems():
+                        print "%16s %5s" % ( port, count )
+
+def sigint_handler(signal, frame):
+    ''' Clean up on close
+    '''
+    sys.exit(0)
+
+parser = optparse.OptionParser()
+parser.add_option('-y', '--year',
+                  dest='year', default=None, type=int,
+                  help='log year')
+parser.add_option('-m', '--month',
+                  dest='month', default=None, type=int,
+                  help='log month')
+parser.add_option('-d', '--day',
+                  dest='day', default=None, type=int,
+                  help='log day')
+parser.add_option('-r', '--raw',
+                  dest='raw', default=False, action='store_true',
+                  help='Output raw data')
+parser.add_option('-b', '--base',
+                  dest='base', default='.',
+                  help='base install directory')
+parser.add_option('-c', '--command',
+                  dest='cmd', default='log',  type='choice',
+                  choices=[ 'log', 'ports', 'dest' ], help='Output format')
+options = ""
+args    = ""
+
+if __name__ == '__main__':
+    (options, args) = parser.parse_args()
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    if ( options.year or options.month or options.day ) is None:
+        sys.stderr.write('Option missing: year, month or day\n')
+        sys.exit(16107)
+    try:
+        log_reader = LogReader("%s/log" % options.base, (str(options.year), str(options.month), str(options.day)))
+    except LogDateError as e:
+        sys.stderr.write("%s\n" % e.msg)
+        sys.exit(1)
+    except LogMissingError as e:
+        sys.stderr.write("%s\n" % e.msg)
+        sys.exit(2)
+
+    # run command given as argument or show all logs per default
+    globals()['print_%s' % options.cmd](options.raw)

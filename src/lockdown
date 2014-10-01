@@ -1,0 +1,141 @@
+#!/usr/bin/python
+
+import sys, signal, time, optparse
+
+from nfqueue import NF_DROP, NF_ACCEPT
+from socket  import inet_ntoa
+from dpkt    import ip, tcp, udp
+
+from lockdown  import conninfo
+from daemonize import Daemonize
+
+from lockdown.connassert import ApplicationAssertions
+from lockdown.common     import read_json
+from lockdown.connlog    import ConnectionLogger, ViolationLogger
+from lockdown.conntables import add_new_hook, rem_new_hook, NFQueueReader
+
+# constants
+BLOCKED = 0
+ALLOWED = 1
+NO_APP  = 2
+
+# globals
+hook_state       = True
+app_assertions   = None
+conn_logger      = None
+violation_logger = None
+
+def toggle_hook():
+    ''' toggle nfqueue hook in iptables
+    '''
+    global hook_state
+
+    code = 0
+    if hook_state:
+        code = add_new_hook()
+    else:
+        code = rem_new_hook()
+
+    if code == 0:
+        hook_state = not hook_state
+
+    return code
+
+def callback(ts, payload):
+    ''' process new connections
+    '''
+    data = payload.get_data()
+
+    # parse the transport layer
+    packet  = ip.IP(data)
+    segment = packet.data
+
+    # what we do w/ unknown protocols
+    if packet.p not in ( ip.IP_PROTO_TCP, ip.IP_PROTO_UDP ):
+        if conf.get('default', 0) > 0:
+            payload.set_verdict(NF_ACCEPT)
+        else:
+            payload.set_verdict(NF_DROP)
+
+    # extract needed values
+    ( proto, sip, sport, dip, dport ) = ( packet.p, inet_ntoa(packet.src), segment.sport, inet_ntoa(packet.dst), segment.dport ) 
+
+    # find the process trying to make the connection
+    ( pid, app, uid ) = proc = conninfo.get_conn_process(proto, sip, sport, dip, dport)
+
+    # determine if the connection is allowed or not
+    if app is None:
+        outcome = NO_APP
+    elif app_assertions.check_app(uid, proto, app, dport, dip):
+        outcome = ALLOWED
+    else:
+        outcome = BLOCKED
+
+    # handle the packet
+    if outcome in ( BLOCKED, NO_APP ) and not conf.get('log_only', 0) > 0:
+        payload.set_verdict(NF_DROP)
+    else:
+        payload.set_verdict(NF_ACCEPT)
+
+    if conf.get('verbose', 0) > 0:
+        conn_logger.log_conn(uid, proto, app, dport, dip, outcome)
+    if conf.get('violation_handler', 0) == 1 and outcome == BLOCKED:
+        violation_logger.log_violation(uid, proto, app, dport, dip)
+
+    # explicitly cleanup object, may not be necessary
+    del payload
+    del proc
+
+def sigint_handler(signal, frame):
+    ''' remove iptables entry and cleanup before shutdown
+    '''
+    rem_new_hook() # force this
+    if app_assertions is not None:
+        app_assertions.cleanup()
+    if conn_logger is not None:
+        conn_logger.cleanup()
+
+    sys.exit(0)
+
+parser = optparse.OptionParser()
+parser.add_option("-d", "--debug",
+                  dest="debug", default=5, type=int,
+                  help="set output level")
+parser.add_option("-f", "--foreground",
+                  dest="foreground", default=False,
+                  action="store_true", help="run in foreground")
+parser.add_option("-b", "--base",
+                  dest="base", default=".",
+                  help="base install directory")
+
+options = ""
+args    = ""
+
+# daemonize
+class Lockdown(Daemonize):
+
+    def run_daemon(self):
+        global conf, app_assertions, conn_logger, violation_logger
+
+        conf             = read_json("%s/conf/main.conf" % options.base)
+        conf['verbose']  = options.debug
+        app_assertions   = ApplicationAssertions("%s/conf" % options.base)
+        conn_logger      = ConnectionLogger("%s/log" % options.base)
+        reader           = NFQueueReader(0, callback)
+
+        if conf.get('violation_handler', 0) == 1:
+            violation_logger = ViolationLogger("%s/log" % options.base)
+
+        toggle_hook()
+        while 1:
+            reader.queue.process_pending(50)
+            time.sleep(1)
+
+if __name__ == '__main__':
+    (options, args) = parser.parse_args()
+    signal.signal(signal.SIGINT, sigint_handler)
+    lockdown = Lockdown()
+    if options.foreground:
+        lockdown.run_daemon()
+    else:
+        lockdown.start_daemon()

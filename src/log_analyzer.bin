@@ -1,0 +1,3 @@
+#!/bin/sh
+
+PYTHONPATH=/opt/lockdown/lib python /opt/lockdown/bin/log_analyzer -b /opt/lockdown "$@"

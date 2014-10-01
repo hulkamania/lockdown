@@ -30,20 +30,22 @@ uninstall.sh in this directory
 
 usage
 =====
+```bash
 /sbin/lockdown     # start the firewall daemon (as root)
 /sbin/log_analyzer # read information from the log files
-
+```
 configuration
 =============
 /opt/lockdown/conf/main.conf:
 
-log_only          - do not block any connections
-violation_handler - TODO future releases
-default           - default action for non TCP/UDP connections, 1=ALLOW, 0=BLOCK
+* log_only          do not block any connections
+* violation_handler TODO future releases
+* default           default action for non TCP/UDP connections, 1=ALLOW, 0=BLOCK
 
 /opt/lockdown/conf/{tcp, udp}.conf:
-
+```json
 "<user>" : {
         "<binary path>" : {
                 { "port" : <minimum or only port>, "max" : <maximum port>, "destination" : [ "<destination IP or networks>", ] },
         ...
+```
