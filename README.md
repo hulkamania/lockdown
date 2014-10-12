@@ -51,3 +51,7 @@ default | default action for non TCP/UDP connections, 1=ALLOW, 0=BLOCK
                 { "port" : <minimum or only port>, "max" : <maximum port>, "destination" : [ "<destination IP or networks>", ] },
         ...
 ```
+
+known issues
+============
+- when running the lookup for the process making a DNS request a major performance hit is seen (1-2 seconds), due to this DNS traffic is currently whitelisted
