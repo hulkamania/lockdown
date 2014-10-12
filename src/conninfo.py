@@ -19,6 +19,23 @@ def get_conn_process(proto, sip, sport, dip, dport):
 
     return found
 
+def get_list_process(proto, sip, sport):
+    ''' Get the process information for a server
+    '''
+    found = (None, None, None)
+    sock  = ''
+
+    idiag = inet_diag.create(states=inet_diag.listen_states, socktype=proto, ge_spt=sport, le_spt=sport, proc=1)
+    try:
+        sock = idiag.get()
+        found = ( sock.pid(), sock.process(), sock.uid() )
+    except:
+        pass
+    del sock
+    del idiag
+
+    return found
+
 def main():
     ''' Test code
     '''

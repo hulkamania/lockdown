@@ -63,6 +63,10 @@ def callback(ts, payload):
     # find the process trying to make the connection
     ( pid, app, uid ) = proc = conninfo.get_conn_process(proto, sip, sport, dip, dport)
 
+    # handle requests that start a listener
+    if app is None:
+        ( pid, app, uid ) = proc = conninfo.get_list_process(proto, sip, sport)
+
     # determine if the connection is allowed or not
     if app is None:
         outcome = NO_APP
