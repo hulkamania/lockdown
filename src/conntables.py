@@ -9,10 +9,14 @@ from socket  import AF_INET
 '''
 
 IPT_BIN    = 'iptables'
-IPT_STATEs = { 'rem' : ( '-D OUTPUT -p tcp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0',
-                         '-D OUTPUT -p udp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0' ),
-               'add' : ( '-I OUTPUT 1 -p tcp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0',
-                         '-I OUTPUT 1 -p udp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0' ) }
+IPT_STATEs = { 'rem' : ( '-D OUTPUT -m conntrack --ctstate NEW -j lockdown',
+                         '-F lockdown',
+                         '-X lockdown'),
+               'add' : ( '-N lockdown',
+                         '-I OUTPUT 1 -m conntrack --ctstate NEW -j lockdown',
+                         '-A lockdown -p udp -m udp --dport 53 -j RETURN',
+                         '-A lockdown -p tcp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0',
+                         '-A lockdown -p udp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0' ) }
 
 def add_new_hook():
     ''' Add the hook for picking up new outgoing connections
