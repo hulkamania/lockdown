@@ -138,6 +138,7 @@ class Lockdown(Daemonize):
 if __name__ == '__main__':
     (options, args) = parser.parse_args()
     signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGTERM, sigint_handler)
     lockdown = Lockdown()
     if options.foreground:
         lockdown.run_daemon()
