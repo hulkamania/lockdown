@@ -1,3 +1,6 @@
+unreleased defaults options for log_analyzer
+        - log_analyzer : default year, month and day (today)
+
 12.10.2014 v0.2 handle processes that create listener
         - inet_diag  : added listen_states for looking up listening processes
         - conninfo   : added get_list_process to lookup listening process based on outgoing sport
