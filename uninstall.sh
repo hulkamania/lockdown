@@ -1,5 +1,5 @@
 #!/bin/sh
 
-rm -rf /opt/lockdown
+rm -rf <BASE>/lockdown
 rm /sbin/lockdown
 rm /sbin/log_analyzer
