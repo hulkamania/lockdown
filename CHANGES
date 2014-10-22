@@ -1,5 +1,7 @@
-unreleased defaults options for log_analyzer
+unreleased defaults options for log_analyzer, packaging
         - log_analyzer : default year, month and day (today)
+        - depends      : added .deb and .rpm dependencies not found in official repos
+        - packages     : added .deb and .rpm package for easy installation
 
 12.10.2014 v0.2 handle processes that create listener
         - inet_diag  : added listen_states for looking up listening processes

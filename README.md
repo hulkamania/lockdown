@@ -1,32 +1,38 @@
 lockdown
 ========
-Outgoing connection firewall based on originating binary.
+Block/allow outgoing connections based on what binary (and which user) made the connection.
 
 This is the first version. Open to be tested, critized, whatever.
 
-Feel free to drop comments/suggestions/ideas at lockdown.tables<at>gmail.com but
-please don't write just to tell me my Makefile is crude, I know it is crude. If you
-really want to criticize it, please be good enough to offer improvement suggestions.
+Feel free to drop comments/suggestions/ideas at lockdown.tables<at>gmail.com
 
-Block/allow outgoing connections based on what binary (and which user) made the connection.
 
 requirements
 ============
 * iptables
 * python 2.x
 * dpkt (https://code.google.com/p/dpkt/)
+** deb : python-dpkt
+** rpm : python-dpkt
 * nfqueue
-* nfqueue python bindings v2.0.10 (debian variants python-nfqueue 0.4-6)
-* python-inet_diag (tarball provided)
+** deb : libnetfilter-queue
+** rpm : libnetfilter-queue
+* nfqueue python bindings
+** deb : python-nfqueue
+** rpm : python-nfqueue-0.4-7.x86_64.rpm (provided in depends/rpm)
+* python-inet_diag
+** deb : python-inet-diag_0.1-2_amd64.deb (provided in depends/deb)
+** rpm : python-inet_diag-0.1-1.fc21.x86_64.rpm (provided in depends/rpm)
 
 installation
 ============
 1. install requirements
-2. make build; sudo make install
+2. a. install .rpm or .deb (provided in packages) OR
+   b. make build; sudo make install
 
 uninstall
 =========
-uninstall.sh in this directory
+uninstall.sh in <install directory>/bin/
 
 usage
 =====
