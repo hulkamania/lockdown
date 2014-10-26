@@ -1,0 +1,11 @@
+{
+    'hosts' : [
+        { 'url' : 'www.google.com',    'port' : 443, 'runs' : 10 },
+        { 'url' : 'www.google.ch',     'port' : 443, 'runs' : 10 },
+        { 'url' : 'www.google.ca',     'port' : 443, 'runs' : 10 },
+        { 'url' : 'www.google.com.au', 'port' : 443, 'runs' : 10 },
+        { 'url' : 'www.google.co.za',  'port' : 443, 'runs' : 10 },
+        { 'url' : 'www.google.ru',     'port' : 443, 'runs' : 10 },
+        { 'url' : 'www.google.com.br', 'port' : 443, 'runs' : 10 }
+    ]
+}

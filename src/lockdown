@@ -14,6 +14,8 @@ from lockdown.common     import read_json
 from lockdown.connlog    import ConnectionLogger, ViolationLogger
 from lockdown.conntables import add_new_hook, rem_new_hook, NFQueueReader
 
+from lockdown.test import perf_test
+
 # constants
 BLOCKED = 0
 ALLOWED = 1
@@ -90,6 +92,12 @@ def callback(ts, payload):
     del payload
     del proc
 
+def test_output(results):
+    ''' format and print test results
+    '''
+    for result in results:
+        print "%-22s avg: %-15s min: %-15s max: %-15s" % ( result.url, result.avg, result.min, result.max )
+
 def sigint_handler(signal, frame):
     ''' remove iptables entry and cleanup before shutdown
     '''
@@ -111,6 +119,12 @@ parser.add_option("-f", "--foreground",
 parser.add_option("-b", "--base",
                   dest="base", default=".",
                   help="base install directory")
+parser.add_option("-t", "--test",
+                  dest="test", default=False,
+                  action="store_true", help="run performance tests")
+parser.add_option("-D", "--test_cases",
+                  dest="cases", default="conf/test/test_hosts.json",
+                  help="test cases configuration, used with --test")
 
 options = ""
 args    = ""
@@ -139,8 +153,12 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     signal.signal(signal.SIGINT, sigint_handler)
     signal.signal(signal.SIGTERM, sigint_handler)
+
     lockdown = Lockdown()
     if options.foreground:
         lockdown.run_daemon()
+    elif options.test:
+        results = perf_test.run_tests("%s/%s" % ( options.base, options.cases ))
+        test_output(results)
     else:
         lockdown.start_daemon()
