@@ -57,7 +57,8 @@ install :
 		exit 3; \
 	fi
 	# install software
-	@cp -r build/* $(ROOT)
+	@cp -r build/sbin/* $(ROOT)/sbin/.
+	@cp -r build/${BASE}/* $(ROOT)/${BASE}/.
 	@mkdir -p $(ROOT)/$(BASE)/lockdown/log
 	# add binaries
 	@chmod 750 $(ROOT)/sbin/lockdown
