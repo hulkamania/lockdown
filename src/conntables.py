@@ -1,4 +1,4 @@
-import nfqueue
+import nfqueue, asyncore
 
 from os      import system
 from nfqueue import NFQNL_COPY_PACKET
@@ -35,7 +35,7 @@ def _new_hook(action):
 
     return code
 
-class NFQueueReader:
+class NFQueueReader(asyncore.file_dispatcher):
     ''' Reads data from am NFQueue queue and passes
         it to the supplied callback
     '''
@@ -44,5 +44,14 @@ class NFQueueReader:
         self.queue.set_callback(callback)
         self.queue.fast_open(queue, AF_INET)
         self.queue.set_queue_maxlen(1024)
+
+        self.fd = self.queue.get_fd()
+        asyncore.file_dispatcher.__init__(self, self.fd, None)
+
         self.queue.set_mode(NFQNL_COPY_PACKET)
 
+    def handle_read(self):
+        self.queue.process_pending(5)
+
+    def writable(self):
+        return False
