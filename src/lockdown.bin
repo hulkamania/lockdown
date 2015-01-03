@@ -1,3 +1,8 @@
 #!/bin/sh
 
-PYTHONPATH=<BASE>/lockdown/lib python <BASE>/lockdown/bin/lockdown -b <BASE>/lockdown "$@"
+OPTIMIZE='-O'
+if [ "$LOCKDOWN_DEBUG" == "1" ]; then
+    OPTIMIZE='-m cProfile -s time -o /tmp/lockdown.profile'
+fi
+
+PYTHONPATH=<BASE>/lockdown/lib python $OPTIMIZE <BASE>/lockdown/bin/lockdown -b <BASE>/lockdown "$@"
