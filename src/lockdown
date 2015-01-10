@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, signal, time, optparse, asyncore
+import sys, signal, time, optparse, asyncore, subprocess
 
 from nfqueue import NF_DROP, NF_ACCEPT
 from socket  import inet_ntoa
@@ -10,7 +10,7 @@ from lockdown  import conninfo
 from daemonize import Daemonize
 
 from lockdown.connassert import ApplicationAssertions
-from lockdown.common     import read_json
+from lockdown.common     import read_json, pack_conn
 from lockdown.connlog    import ConnectionLogger, ViolationLogger
 from lockdown.conntables import add_new_hook, rem_new_hook, NFQueueReader
 
@@ -22,10 +22,9 @@ ALLOWED = 1
 NO_APP  = 2
 
 # globals
-hook_state       = True
-app_assertions   = None
-conn_logger      = None
-violation_logger = None
+hook_state     = True
+app_assertions = None
+conn_logger    = None
 
 def toggle_hook():
     ''' toggle nfqueue hook in iptables
@@ -84,11 +83,11 @@ def callback(ts, payload):
         payload.set_verdict(NF_ACCEPT)
 
     if conf.get('verbose', 0) > 0:
-        conn_logger.log_conn(uid, proto, app, dport, dip, outcome)
-    if conf.get('violation_handler', 0) == 1 and outcome == BLOCKED:
-        violation_logger.log_violation(uid, proto, app, dport, dip)
+        packed_conn = pack_conn(uid, proto, dport, outcome, packet.dst, app)
+        conn_logger.stdin.write(packed_conn)
+	conn_logger.stdin.flush()
 
-    # explicitly cleanup object, may not be necessary
+    # explicitly cleanup objects
     del payload
     del proc
 
@@ -105,7 +104,7 @@ def sigint_handler(signal, frame):
     if app_assertions is not None:
         app_assertions.cleanup()
     if conn_logger is not None:
-        conn_logger.cleanup()
+        conn_logger.terminate()
 
     sys.exit(0)
 
@@ -133,16 +132,16 @@ args    = ""
 class Lockdown(Daemonize):
 
     def run_daemon(self):
-        global conf, app_assertions, conn_logger, violation_logger
+        global conf, app_assertions, conn_logger
 
         conf             = read_json("%s/conf/main.conf" % options.base)
         conf['verbose']  = options.debug
         app_assertions   = ApplicationAssertions("%s/conf" % options.base)
-        conn_logger      = ConnectionLogger("%s/log" % options.base)
         reader           = NFQueueReader(0, callback)
-
-        if conf.get('violation_handler', 0) == 1:
-            violation_logger = ViolationLogger("%s/log" % options.base)
+        # start the log process
+        conn_logger      = subprocess.Popen([ "python", "%s/bin/logger" % options.base,
+                                              "-b", options.base ], stdin=subprocess.PIPE,
+                                            env={ 'PYTHONPATH' : "%s/lib" % options.base })
 
         toggle_hook()
         asyncore.loop()
@@ -153,6 +152,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, sigint_handler)
 
     lockdown = Lockdown()
+
     if __debug__:
         lockdown.run_daemon()
     elif options.foreground:
