@@ -6,7 +6,7 @@ CONF_DIR= $(BASE)/lockdown/conf
 LIB_LOCKDOWN= src/connassert.py src/conninfo.py src/connlog.py src/conntables.py src/common.py
 LIB_TEST= src/perf_test.py
 LIB_LDUI= src/logreader.py src/violation.py
-BINS= src/lockdown src/log_analyzer src/violation_tool uninstall.sh
+BINS= src/lockdown src/log_analyzer src/violation_tool src/logger uninstall.sh
 PYTHON=`which python`
 PY_VER=`python --version 2>&1 | cut -d'.' -f1`
 
