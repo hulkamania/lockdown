@@ -1,0 +1,60 @@
+#!/usr/bin/python
+
+import sys, signal, time, optparse, asyncore
+
+from lockdown.common  import read_json, unpack_conn, unpack_binary
+from lockdown.connlog import ConnectionLogger, ViolationLogger
+
+conn_logger      = None
+violation_logger = None
+
+def sigint_handler(signal, frame):
+    ''' cleanup before shutdown
+    '''
+    if conn_logger is not None:
+        conn_logger.cleanup()
+    if violation_logger is not None:
+        violation_logger.cleanup()
+
+    sys.exit(0)
+
+class StdInReader(asyncore.file_dispatcher):
+    ''' Reads data from stdin
+    '''
+    def __init__(self, logger, violations, log_violations):
+        asyncore.file_dispatcher.__init__(self, sys.stdin)
+        self.logger         = logger
+        self.violations     = violations
+        self.log_violations = log_violations
+
+    def handle_read(self):
+        ( uid, proto, dport, outcome, app_len, dip ) = unpack_conn(self.recv(24))
+        app = unpack_binary(app_len, self.recv(app_len))
+
+        self.logger.log_conn(uid, proto, app, dport, dip, outcome)
+        if self.log_violations:
+            self.violations.log_violation(uid, proto, app, dport, dip)
+
+    def writable(self):
+        return False
+
+parser = optparse.OptionParser()
+parser.add_option("-b", "--base",
+                  dest="base", default=".",
+                  help="base install directory")
+
+options = ""
+args    = ""
+
+if __name__ == '__main__':
+    (options, args) = parser.parse_args()
+    signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGTERM, sigint_handler)
+
+    conf             = read_json("%s/conf/main.conf" % options.base)
+    conn_logger      = ConnectionLogger("%s/log" % options.base)
+    violation_logger = ViolationLogger("%s/log" % options.base)
+    log_violations   = conf.get('violation_handler', 0) == 1
+
+    input_reader = StdInReader(conn_logger, violation_logger, log_violations)
+    asyncore.loop()
