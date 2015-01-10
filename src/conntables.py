@@ -14,7 +14,6 @@ IPT_STATEs = { 'rem' : ( '-D OUTPUT -m conntrack --ctstate NEW -j lockdown',
                          '-X lockdown'),
                'add' : ( '-N lockdown',
                          '-I OUTPUT 1 -m conntrack --ctstate NEW -j lockdown',
-                         '-A lockdown -p udp -m udp --dport 53 -j RETURN',
                          '-A lockdown -p tcp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0',
                          '-A lockdown -p udp -m conntrack --ctstate NEW -j NFQUEUE --queue-num 0' ) }
 
