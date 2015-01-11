@@ -5,6 +5,10 @@ DAY_RE   = re.compile('^([1-9]|[12][0-9]|30|31)$')
 MON_RE   = re.compile('^([1-9]|1[0-2])$')
 YEAR_RE  = re.compile('^20\d\d$')
 
+OUTCOMES = { 0 : 'BLOCKED',
+             1 : 'ALLOWED',
+             2 : 'NO_APP' }
+
 class LogDateError(Exception):
     def __init__(self, value):
         self.value = value

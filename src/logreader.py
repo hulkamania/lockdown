@@ -26,7 +26,7 @@ class LogReader:
         cur  = conn.cursor()
 
         for ( conn_id, user, proto, binary, dport, dest, outcome, date ) in cur.execute(LOGS_SELECT).fetchall():
-            if self.exclude is not None and binary.find(self.exclude) != -1:
+            if self._is_excluded(binary):
                 continue
             logs.append({ 'id': conn_id, 'user': user, 'proto': proto, 'bin': binary, 'dport': dport, 'dest': dest, 'outcome': outcome, 'date': date })
         cur.close()
@@ -78,3 +78,13 @@ class LogReader:
             logs[dest][proto][dport][binary] = logs[dest][proto][dport].get(binary, 0) + 1
 
         return logs
+
+    def _is_excluded(self, binary):
+        if self.exclude is None:
+            return False
+
+        for text in self.exclude:
+            if binary.find(text) != -1:
+                return True
+
+        return False

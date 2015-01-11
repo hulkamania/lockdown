@@ -6,7 +6,7 @@ from   socket         import inet_aton
 from   dpkt.ip        import IP_PROTO_TCP, IP_PROTO_UDP
 
 from   ldui.logreader import LogReader
-from   ldui.common    import LogDateError, LogMissingError, print_protos
+from   ldui.common    import LogDateError, LogMissingError, print_protos, OUTCOMES
 
 # globals
 log_reader     = None
@@ -32,14 +32,14 @@ def command_help(cmd):
 def print_log(raw):
     '''Print the entire log'''
     if not raw:
-        print "%-5s %-10s %-6s %-6s %-16s %-7s %24s %s" % ( 'id', 'user', 'proto', 'dport', 'dest', 'outcome', 'date', 'binary' )
+        print "%-5s %-10s %-6s %-6s %-16s %-8s %-24s %s" % ( 'id', 'user', 'proto', 'dport', 'dest', 'outcome', 'date', 'binary' )
 
     for log in log_reader.get_all():
         if raw:
             print repr(log)
         else:
-            print "%-5s %-10s %-6s %-6s %-16s %-7s %24s %s" % ( log['id'], log['user'], log['proto'], log['dport'],
-                                                                log['dest'], log['outcome'], log['date'], log['bin'] )
+            print "%-5s %-10s %-6s %-6s %-16s %-8s %-24s %s" % ( log['id'], log['user'], log['proto'], log['dport'],
+                                                                 log['dest'], OUTCOMES.get(log['outcome']), log['date'], log['bin'] )
 
 def print_ports(raw):
     '''Print the ports per binary'''
@@ -84,8 +84,8 @@ parser.add_option('-d', '--day',
                   dest='day', default=curr_date.tm_mday, type=int,
                   help='log day (dd, default=today)')
 parser.add_option('-e', '--exclude',
-                  dest='exclude', default=None,
-                  help='exclude log lines with a binary containing the given text')
+                  dest='exclude', default=[], action='append',
+                  help='exclude log lines with a binary containing the given text (can be used multiple times)')
 parser.add_option('-r', '--raw',
                   dest='raw', default=False, action='store_true',
                   help='Output raw data')
