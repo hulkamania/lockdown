@@ -9,6 +9,10 @@ OUTCOMES = { 0 : 'BLOCKED',
              1 : 'ALLOWED',
              2 : 'NO_APP' }
 
+OC_VALS = { 'BLOCKED' : 0,
+            'ALLOWED' : 1,
+            'NO_APP'  : 2 }
+
 class LogDateError(Exception):
     def __init__(self, value):
         self.value = value

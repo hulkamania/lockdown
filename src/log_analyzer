@@ -6,7 +6,7 @@ from   socket         import inet_aton
 from   dpkt.ip        import IP_PROTO_TCP, IP_PROTO_UDP
 
 from   ldui.logreader import LogReader
-from   ldui.common    import LogDateError, LogMissingError, print_protos, OUTCOMES
+from   ldui.common    import LogDateError, LogMissingError, print_protos, OUTCOMES, OC_VALS
 
 # globals
 log_reader     = None
@@ -86,6 +86,9 @@ parser.add_option('-d', '--day',
 parser.add_option('-e', '--exclude',
                   dest='exclude', default=[], action='append',
                   help='exclude log lines with a binary containing the given text (can be used multiple times)')
+parser.add_option('-o', '--outcome',
+                  dest='outcome', default=[], action='append',
+                  help='only show log lines for the given outcome (BLOCKED, ALLOWED or NO_APP) (can be used multiple times)')
 parser.add_option('-r', '--raw',
                   dest='raw', default=False, action='store_true',
                   help='Output raw data')
@@ -101,7 +104,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
 
     try:
-        log_reader = LogReader("%s/log" % options.base, (str(options.year), str(options.month), str(options.day)), exclude=options.exclude)
+        log_reader = LogReader("%s/log" % options.base, (str(options.year), str(options.month), str(options.day)), exclude=options.exclude, outcomes=options.outcome)
     except LogDateError as e:
         sys.stderr.write("%s\n" % e.msg)
         sys.exit(1)
@@ -116,6 +119,11 @@ if __name__ == '__main__':
         args.append('log')
     elif len(args) > 1 and args[1] == 'help':
         command_help(args[0])
+    elif len(options.outcome) > 0:
+        for oc in options.outcome:
+            if oc not in OC_VALS.keys():
+                sys.stderr.write("--outcome: invalid value: %s\n" % oc)
+                sys.exit(4)
 
     # run command given as argument or show all logs per default
     globals()['print_%s' % args[0]](options.raw)

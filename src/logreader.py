@@ -1,21 +1,23 @@
 import sqlite3
 
-from ldui.common import find_log
+from ldui.common import find_log, OC_VALS
 
 # log database SQL
-LOGS_SELECT  = 'SELECT conn_log.id, user, proto, binary, dport, dest, outcome, time FROM conn_log JOIN conn_stamp ON conn_stamp.log_id = conn_log.id'
+LOGS_SELECT  = 'SELECT conn_log.id, user, proto, binary, dport, dest, outcome, time FROM conn_log JOIN conn_stamp ON conn_stamp.log_id = conn_log.id %s'
 
 class LogReader:
     ''' Reads information from the LockDown logs
     '''
-    def __init__(self, log_dir, date, exclude=None):
+    def __init__(self, log_dir, date, exclude=[], outcomes=[]):
         ''' Returns a new LogReader
-            log_dir - directory where the logs are stored
-            date    - a tuple (yyyy, mm, dd) representing the log to be read
-            exclude - exclude log lines with a binary containing this text
+            log_dir  - directory where the logs are stored
+            date     - a tuple (yyyy, mm, dd) representing the log to be read
+            exclude  - exclude logs with a binary containing this text
+            outcomes - only retrieve logs for the given outcomes
         '''
         self.log_name = find_log(date[0], date[1], date[2], log_dir, 'log')
         self.exclude  = exclude
+        self.outcomes = outcomes
 
     def get_all(self):
         ''' Get all logs
@@ -25,7 +27,7 @@ class LogReader:
         conn = sqlite3.connect(self.log_name)
         cur  = conn.cursor()
 
-        for ( conn_id, user, proto, binary, dport, dest, outcome, date ) in cur.execute(LOGS_SELECT).fetchall():
+        for ( conn_id, user, proto, binary, dport, dest, outcome, date ) in cur.execute(LOGS_SELECT % self._outcomes_where()).fetchall():
             if self._is_excluded(binary):
                 continue
             logs.append({ 'id': conn_id, 'user': user, 'proto': proto, 'bin': binary, 'dport': dport, 'dest': dest, 'outcome': outcome, 'date': date })
@@ -80,11 +82,18 @@ class LogReader:
         return logs
 
     def _is_excluded(self, binary):
-        if self.exclude is None:
-            return False
-
         for text in self.exclude:
             if binary.find(text) != -1:
                 return True
 
         return False
+
+    def _outcomes_where(self):
+        checks = []
+        for outcome in self.outcomes:
+            checks.append("outcome=%d" % OC_VALS.get(outcome))
+
+        if len(checks) > 0:
+            return " WHERE %s" % ' AND '.join(checks)
+        else:
+            return ''
