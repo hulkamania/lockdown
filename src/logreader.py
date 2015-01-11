@@ -8,22 +8,26 @@ LOGS_SELECT  = 'SELECT conn_log.id, user, proto, binary, dport, dest, outcome, t
 class LogReader:
     ''' Reads information from the LockDown logs
     '''
-    def __init__(self, log_dir, date):
+    def __init__(self, log_dir, date, exclude=None):
         ''' Returns a new LogReader
             log_dir - directory where the logs are stored
             date    - a tuple (yyyy, mm, dd) representing the log to be read
+            exclude - exclude log lines with a binary containing this text
         '''
         self.log_name = find_log(date[0], date[1], date[2], log_dir, 'log')
+        self.exclude  = exclude
 
     def get_all(self):
         ''' Get all logs
-            reuturn - a list of log records
+            return - a list of dictionaries with the keys id, user, proto, bin, dport, dest, outcome, date
         '''
         logs = []
         conn = sqlite3.connect(self.log_name)
         cur  = conn.cursor()
 
         for ( conn_id, user, proto, binary, dport, dest, outcome, date ) in cur.execute(LOGS_SELECT).fetchall():
+            if self.exclude is not None and binary.find(self.exclude) != -1:
+                continue
             logs.append({ 'id': conn_id, 'user': user, 'proto': proto, 'bin': binary, 'dport': dport, 'dest': dest, 'outcome': outcome, 'date': date })
         cur.close()
         conn.close()

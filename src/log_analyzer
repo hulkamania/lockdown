@@ -11,13 +11,23 @@ from   ldui.common    import LogDateError, LogMissingError, print_protos
 # globals
 log_reader     = None
 proto_names    = { IP_PROTO_TCP : 'tcp', IP_PROTO_UDP : 'udp' }
-commands       = (  )
+commands       = ( 'log', 'ports', 'dest' )
 
 def usage():
-    query = "query - show all 'log' entries or [ports, dest] per binary"
-    txt   = "usage: %sprog [options] query\n\n%s" % ( '%', query )
+    query   = "query        - show all 'log' entries or [ports, dest] per binary"
+    query_2 = "<query> help - explain raw format"
+    txt   = "usage: %sprog [options] query\n\n%s\n%s" % ( '%', query, query_2 )
 
     return txt
+
+def command_help(cmd):
+    get_func = None
+    funcs = { 'log' :  log_reader.get_all,
+              'ports': log_reader.get_ports,
+              'dest':  log_reader.get_dest }
+
+    print funcs.get(cmd).__doc__
+    sys.exit(0)
 
 def print_log(raw):
     '''Print the entire log'''
@@ -52,7 +62,7 @@ def print_dest(raw):
         print repr(dests)
         return
     else:
-        print "%16s %5s %5s %5s %s"  % ( 'dest', 'proto', 'port', 'count', 'binary' )
+        print "%-16s %5s %5s %5s %s"  % ( 'dest', 'proto', 'port', 'count', 'binary' )
 
     for dest in sorted(dests, key=lambda dest: inet_aton(dest)):
         print_protos(dests.get(dest), proto_names, "%-16s" % dest, "%28s" % "")
@@ -66,13 +76,16 @@ curr_date = time.localtime()
 parser    = optparse.OptionParser(usage=usage())
 parser.add_option('-y', '--year',
                   dest='year', default=curr_date.tm_year, type=int,
-                  help='log yeari (yy, default=current year)')
+                  help='log year (yy, default=current year)')
 parser.add_option('-m', '--month',
                   dest='month', default=curr_date.tm_mon, type=int,
                   help='log month (mm, default=current month)')
 parser.add_option('-d', '--day',
                   dest='day', default=curr_date.tm_mday, type=int,
                   help='log day (dd, default=today)')
+parser.add_option('-e', '--exclude',
+                  dest='exclude', default=None,
+                  help='exclude log lines with a binary containing the given text')
 parser.add_option('-r', '--raw',
                   dest='raw', default=False, action='store_true',
                   help='Output raw data')
@@ -88,7 +101,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
 
     try:
-        log_reader = LogReader("%s/log" % options.base, (str(options.year), str(options.month), str(options.day)))
+        log_reader = LogReader("%s/log" % options.base, (str(options.year), str(options.month), str(options.day)), exclude=options.exclude)
     except LogDateError as e:
         sys.stderr.write("%s\n" % e.msg)
         sys.exit(1)
@@ -96,11 +109,13 @@ if __name__ == '__main__':
         sys.stderr.write("%s\n" % e.msg)
         sys.exit(2)
 
-    if len(args) != 0 and args[0] not in ( 'log', 'ports', 'dest' ):
+    if len(args) != 0 and args[0] not in commands:
         sys.stderr.write("query must be log, ports or dest\n")
         sys.exit(3)
     elif len(args) == 0:
         args.append('log')
+    elif len(args) > 1 and args[1] == 'help':
+        command_help(args[0])
 
     # run command given as argument or show all logs per default
     globals()['print_%s' % args[0]](options.raw)
