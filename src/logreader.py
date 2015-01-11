@@ -32,7 +32,7 @@ class LogReader:
 
     def get_ports(self):
         ''' Get ports accessed on a per binary basis
-            return - a dictionary in the form { '<binary>' : [ port1, port2, port3, ... ], ... }
+            return - a dictionary in the form { '<proto>' : { port : { <binary> : <count>, ... } , ... }, ... }
         '''
         logs = {}
         raw  = self.get_all()
@@ -40,14 +40,14 @@ class LogReader:
         # reorganize the logs based on binary and protocol
         for log in raw:
             ( binary, proto, dport ) = ( log['bin'], log['proto'], log['dport'] )
-            if not logs.has_key(binary):
-                # create new entry for not yet identified binaries
-                logs[binary] = { proto : {} }
-            elif not logs[binary].has_key(proto):
-                # create new proto entry for binary
-                logs[binary][proto] = {}
-            # add or increment the port entry
-            logs[binary][proto][dport] = logs[binary][proto].get(dport, 0) + 1
+            if not logs.has_key(proto):
+                # create new entry for not yet identified proto
+                logs[proto] = { dport : {} }
+            elif not logs[proto].has_key(dport):
+                # create new dport entry for proto
+                logs[proto][dport] = {}
+            # add or increment the binary entry
+            logs[proto][dport][binary] = logs[proto][dport].get(binary, 0) + 1
 
         return logs
 

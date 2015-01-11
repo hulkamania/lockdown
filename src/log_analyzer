@@ -11,6 +11,12 @@ log_reader     = None
 proto_names    = { IP_PROTO_TCP : 'tcp', IP_PROTO_UDP : 'udp' }
 commands       = (  )
 
+def usage():
+    query = "query - show all 'log' entries or [ports, dest] per binary"
+    txt   = "usage: %sprog [options] query\n\n%s" % ( '%', query )
+
+    return txt
+
 def print_log(raw):
     '''Print the entire log'''
     if not raw:
@@ -25,17 +31,23 @@ def print_log(raw):
 
 def print_ports(raw):
     '''Print the ports per binary'''
-    binaries = log_reader.get_ports()
-    for ( path, protos ) in binaries.iteritems():
-        if raw:
-            print repr(path)
-            print repr(protos)
-        else:
-            for ( proto, ports ) in protos.iteritems():
-                ( p, c ) = ports.popitem()
-                print "%s %5s %5s %s"  % ( proto_names[proto], p, c, path )
-                for ( port, count ) in ports.iteritems():
-                    print "%9s %5s" % ( port, count )
+    protos = log_reader.get_ports()
+
+    if raw:
+        print repr(protos)
+        return
+    else:
+        print "%5s %5s %5s %s"  % ( 'proto', 'port', 'count', 'binary' )
+
+    for ( proto, ports ) in protos.iteritems():
+        for port in sorted(ports):
+            bins = ports.get(port)
+            b    = sorted(bins, key=bins.__getitem__).pop()
+
+            print "%5s %5s %5s %s"  % ( proto_names[proto], port, bins.pop(b), b )
+
+            for binary in sorted(bins, key=bins.__getitem__, reverse=True):
+                print "%17s %s" % ( bins.get(binary), binary )
 
 def print_dest(raw):
     '''Print the destinations per binary'''
@@ -59,7 +71,7 @@ def sigint_handler(signal, frame):
     sys.exit(0)
 
 curr_date = time.localtime()
-parser    = optparse.OptionParser()
+parser    = optparse.OptionParser(usage=usage())
 parser.add_option('-y', '--year',
                   dest='year', default=curr_date.tm_year, type=int,
                   help='log yeari (yy, default=current year)')
@@ -75,9 +87,7 @@ parser.add_option('-r', '--raw',
 parser.add_option('-b', '--base',
                   dest='base', default='.',
                   help='base install directory')
-parser.add_option('-c', '--command',
-                  dest='cmd', default='log',  type='choice',
-                  choices=[ 'log', 'ports', 'dest' ], help='Output format')
+
 options = ""
 args    = ""
 
@@ -94,5 +104,11 @@ if __name__ == '__main__':
         sys.stderr.write("%s\n" % e.msg)
         sys.exit(2)
 
+    if len(args) != 0 and args[0] not in ( 'log', 'ports', 'dest' ):
+        sys.stderr.write("query must be log, ports or dest\n")
+        sys.exit(3)
+    elif len(args) == 0:
+        args.append('log')
+
     # run command given as argument or show all logs per default
-    globals()['print_%s' % options.cmd](options.raw)
+    globals()['print_%s' % args[0]](options.raw)
