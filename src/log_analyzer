@@ -2,9 +2,11 @@
 
 import sys, signal, optparse, time
 
-from   ldui.logreader import LogReader
-from   ldui.common    import LogDateError, LogMissingError
+from   socket         import inet_aton
 from   dpkt.ip        import IP_PROTO_TCP, IP_PROTO_UDP
+
+from   ldui.logreader import LogReader
+from   ldui.common    import LogDateError, LogMissingError, print_protos
 
 # globals
 log_reader     = None
@@ -39,31 +41,21 @@ def print_ports(raw):
     else:
         print "%5s %5s %5s %s"  % ( 'proto', 'port', 'count', 'binary' )
 
-    for ( proto, ports ) in protos.iteritems():
-        for port in sorted(ports):
-            bins = ports.get(port)
-            b    = sorted(bins, key=bins.__getitem__).pop()
-
-            print "%5s %5s %5s %s"  % ( proto_names[proto], port, bins.pop(b), b )
-
-            for binary in sorted(bins, key=bins.__getitem__, reverse=True):
-                print "%17s %s" % ( bins.get(binary), binary )
+    print_protos(protos, proto_names, "", "%12s" % "")
 
 def print_dest(raw):
     '''Print the destinations per binary'''
-    binaries = log_reader.get_dest()
-    for ( path, dests ) in binaries.iteritems():
-        if raw:
-            print repr(path)
-            print repr(dests)
-        else:
-            for ( dest, protos ) in dests.iteritems():
-                print "%16s %s" % ( dest, path )
-                for ( proto, ports ) in protos.iteritems():
-                    ( p, c ) = ports.popitem()
-                    print "%10s %5s %5s"  % ( proto_names[proto], p, c )
-                    for ( port, count ) in ports.iteritems():
-                        print "%16s %5s" % ( port, count )
+
+    dests = log_reader.get_dest()
+
+    if raw:
+        print repr(dests)
+        return
+    else:
+        print "%16s %5s %5s %5s %s"  % ( 'dest', 'proto', 'port', 'count', 'binary' )
+
+    for dest in sorted(dests, key=lambda dest: inet_aton(dest)):
+        print_protos(dests.get(dest), proto_names, "%-16s" % dest, "%28s" % "")
 
 def sigint_handler(signal, frame):
     ''' Clean up on close

@@ -6,7 +6,7 @@ from ldui.common import find_log
 LOGS_SELECT  = 'SELECT conn_log.id, user, proto, binary, dport, dest, outcome, time FROM conn_log JOIN conn_stamp ON conn_stamp.log_id = conn_log.id'
 
 class LogReader:
-    ''' Reads information from the LockDown logs 
+    ''' Reads information from the LockDown logs
     '''
     def __init__(self, log_dir, date):
         ''' Returns a new LogReader
@@ -32,7 +32,7 @@ class LogReader:
 
     def get_ports(self):
         ''' Get ports accessed on a per binary basis
-            return - a dictionary in the form { '<proto>' : { port : { <binary> : <count>, ... } , ... }, ... }
+            return - a dictionary in the form { '<proto>' : { <port> : { <binary> : <count>, ... } , ... }, ... }
         '''
         logs = {}
         raw  = self.get_all()
@@ -53,6 +53,7 @@ class LogReader:
 
     def get_dest(self):
         ''' Get destinations and ports accessed on a per binary basis
+            return - a dictionary in the form { '<dest>' : { <proto> : { <port> : { <binary> : <count>, ... }, ... } , ... }, ... }
         '''
         logs = {}
         raw  = self.get_all()
@@ -60,16 +61,16 @@ class LogReader:
         # reorganize the logs based on binary and destination
         for log in raw:
             ( binary, proto, dest, dport ) = ( log['bin'], log['proto'], log['dest'], log['dport'] )
-            if not logs.has_key(binary):
-                # create new entry for not yet identified binaries
-                logs[binary] = { dest : { proto : {} } }
-            elif not logs[binary].has_key(dest):
-                # create new destination entry for binary
-                logs[binary][dest] = { proto : {} }
-            elif not logs[binary][dest].has_key(proto):
+            if not logs.has_key(dest):
+                # create new entry for not yet identified destinations
+                logs[dest] = { proto : { dport : {} } }
+            elif not logs[dest].has_key(proto):
                 # create new protocol entry for destination
-                logs[binary][dest][proto] = {}
-            # add or increment the port entry
-            logs[binary][dest][proto][dport] = logs[binary][dest][proto].get(dport, 0) + 1
+                logs[dest][proto] = { dport : {} }
+            elif not logs[dest][proto].has_key(dport):
+                # create new dport entry for protocol
+                logs[dest][proto][dport] = {}
+            # add or increment the binary entry
+            logs[dest][proto][dport][binary] = logs[dest][proto][dport].get(binary, 0) + 1
 
         return logs

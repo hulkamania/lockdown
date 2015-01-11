@@ -33,3 +33,19 @@ def find_log(year, month, day, log_dir, suffix):
         raise LogMissingError(log_name)
     
     return log_name
+
+def print_protos(proto_map, proto_names, prefix, prespace):
+    ''' pretty print a protocols map { <proto> : { <port> : { <binary> : <count, ... }, ... }, ... }
+    '''
+
+    for ( proto, ports ) in proto_map.iteritems():
+        # ports in ascending order
+        for port in sorted(ports):
+            bins = ports.get(port)
+            # binary counts in descending order
+            b    = sorted(bins, key=bins.__getitem__).pop()
+
+            print "%s%5s %5s %5s %s"  % ( prefix, proto_names[proto], port, bins.pop(b), b )
+
+            for binary in sorted(bins, key=bins.__getitem__, reverse=True):
+                print "%s%5s %s" % ( prespace, bins.get(binary), binary )
