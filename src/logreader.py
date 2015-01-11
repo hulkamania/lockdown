@@ -8,7 +8,7 @@ LOGS_SELECT  = 'SELECT conn_log.id, user, proto, binary, dport, dest, outcome, t
 class LogReader:
     ''' Reads information from the LockDown logs
     '''
-    def __init__(self, log_dir, date, exclude=[], outcomes=[]):
+    def __init__(self, log_dir, date, exclude=[], outcomes=[], search=''):
         ''' Returns a new LogReader
             log_dir  - directory where the logs are stored
             date     - a tuple (yyyy, mm, dd) representing the log to be read
@@ -18,6 +18,7 @@ class LogReader:
         self.log_name = find_log(date[0], date[1], date[2], log_dir, 'log')
         self.exclude  = exclude
         self.outcomes = outcomes
+        self.search   = search
 
     def get_all(self):
         ''' Get all logs
@@ -27,7 +28,7 @@ class LogReader:
         conn = sqlite3.connect(self.log_name)
         cur  = conn.cursor()
 
-        for ( conn_id, user, proto, binary, dport, dest, outcome, date ) in cur.execute(LOGS_SELECT % self._outcomes_where()).fetchall():
+        for ( conn_id, user, proto, binary, dport, dest, outcome, date ) in cur.execute(LOGS_SELECT % self._build_where()).fetchall():
             if self._is_excluded(binary):
                 continue
             logs.append({ 'id': conn_id, 'user': user, 'proto': proto, 'bin': binary, 'dport': dport, 'dest': dest, 'outcome': outcome, 'date': date })
@@ -88,12 +89,32 @@ class LogReader:
 
         return False
 
+    def _build_where(self):
+        outcomes_where = self._outcomes_where()
+        search_where   = self._search_where()
+
+        where = ''
+        if len(outcomes_where) > 0 and len(search_where) > 0:
+            where = "WHERE %s AND ( %s )" % ( outcomes_where, search_where )
+        elif len(outcomes_where) > 0:
+            where = "WHERE %s" % outcomes_where
+        elif len(search_where) > 0:
+            where = "WHERE %s" % search_where
+
+        return where
+
     def _outcomes_where(self):
         checks = []
         for outcome in self.outcomes:
             checks.append("outcome=%d" % OC_VALS.get(outcome))
 
         if len(checks) > 0:
-            return " WHERE %s" % ' AND '.join(checks)
+            return "%s" % ' AND '.join(checks)
+        else:
+            return ''
+
+    def _search_where(self):
+        if len(self.search) > 0:
+            return "dest LIKE '%s%s%s' OR binary LIKE '%s%s%s'" % ( '%', self.search, '%', '%', self.search, '%' )
         else:
             return ''
