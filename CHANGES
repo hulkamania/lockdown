@@ -1,3 +1,9 @@
+12.01.2015 v0.9 improved performance, more log_analyzer functionality
+        - lockdown     : using asyncore vastly improved performance
+        - logger       : logging in seperate process improved performance
+        - log_analyzer : finer grained filtering of logs
+                       : new output structure for ease of reading
+
 26.10.2014 v0.3 defaults options for log_analyzer, packaging, simple TCP handshake perf test
         - log_analyzer : default year, month and day (today)
         - depends      : added .deb and .rpm dependencies not found in official repos
