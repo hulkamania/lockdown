@@ -113,7 +113,8 @@ if __name__ == '__main__':
         args.append('log')
     elif len(args) > 1 and args[1] == 'help':
         command_help(args[0])
-    elif len(options.outcome) > 0:
+
+    if len(options.outcome) > 0:
         for oc in options.outcome:
             if oc not in OC_VALS.keys():
                 sys.stderr.write("--outcome: invalid value: %s\n" % oc)
