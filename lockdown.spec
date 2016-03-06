@@ -1,6 +1,6 @@
 Name: lockdown
 Version: 0
-Release: 9
+Release: 10
 Summary: Filter outgoing connections based on originating binary
 License: GPLv2
 Distribution: Fedora
