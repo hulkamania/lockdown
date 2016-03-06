@@ -23,15 +23,23 @@ def read_json(filename):
     f.close()
     return json.loads(content)
 
+def check_unknown (pid, app, uid, pid2, app2, uid2):
+    ''' Check if an process could be found and return
+        the final pid, uid and app
+    '''
+    if app2 is not None and pid2 is not None and uid2 is not None:
+        ( app, pid, uid ) = ( app2, pid2, uid2 )
+    if app is None or app == '':
+        app = 'UNKOWN'
+    if uid is None:
+        uid = '666'
+
+    return ( pid, app, uid )
+
 def pack_conn (uid, proto, dport, outcome, dst, app):
     ''' Pack connection information to be sent to
         to the logger process
     '''
-    if uid is None:
-        uid = '666'
-    if app is None:
-        app = '666'
-
     primitives = struct.pack('>IIIII', int(uid), int(proto), int(dport), int(outcome), len(app))
     binary     = struct.pack(">%ds" % len(app), app)
 

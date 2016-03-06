@@ -10,11 +10,9 @@ EXISTS_LOG   = 'SELECT count(id) FROM conn_log WHERE user=? and proto=? and bina
 LOG_ID       = 'SELECT id FROM conn_log WHERE user=? and proto=? and binary=? and dport=? and dest=?'
 
 # violatoin database SQL
-CREATE_VIOLATION = 'CREATE TABLE conn_violation (id INTEGER PRIMARY KEY AUTOINCREMENT, user INTEGER, proto INTEGER, binary TEXT, dport INTEGER, dest STRING)'
-CREATE_HANDLED  = 'CREATE TABLE conn_handled   (id INTEGER PRIMARY KEY AUTOINCREMENT, user INTEGER, proto INTEGER, binary TEXT, dport INTEGER, dest STRING)'
-EXISTS_VIOLATION = 'SELECT count(id) FROM conn_violation WHERE user = ? AND proto = ? AND binary = ? AND dport = ? AND dest = ?'
-EXISTS_HANDLED   = 'SELECT count(id) FROM conn_handled   WHERE user = ? AND proto = ? AND binary = ? AND dport = ? AND dest = ?'
-INSERT_VIOLATION = 'INSERT INTO conn_violation (user, proto, binary, dport, dest) VALUES (?, ?, ?, ?, ?)'
+CREATE_VIOLATION = 'CREATE TABLE conn_violation (id INTEGER PRIMARY KEY AUTOINCREMENT, user INTEGER, proto INTEGER, binary TEXT, dport INTEGER, dest STRING, handled INTEGER DEFAULT 0)'
+EXISTS_VIOLATION  = 'SELECT count(id) FROM conn_violation WHERE user = ? AND proto = ? AND binary = ? AND dport = ? AND dest = ?'
+INSERT_VIOLATION  = 'INSERT INTO conn_violation (user, proto, binary, dport, dest) VALUES (?, ?, ?, ?, ?)'
 
 class _Logger:
     ''' Log utility class
@@ -98,7 +96,6 @@ class ViolationLogger(_Logger):
     '''
     def __init__(self, log_dir):
         _Logger.__init__(self, 'violation', log_dir, ( CREATE_VIOLATION, ))
-        self.handled = HandledLogger(log_dir)
 
     def exists(self, uid, proto, app, dport, dest):
         ''' Check if a violation was already logged
@@ -113,17 +110,6 @@ class ViolationLogger(_Logger):
             self.rotate_log()
 
         # add violations that have not yet been recorded
-        if not self.handled.exists(uid, proto, app, dport, dest) and not self.exists(uid, proto, app, dport, dest):
+        if not self.exists(uid, proto, app, dport, dest):
             self.conn.execute(INSERT_VIOLATION, (uid, proto, app, dport, dest))
         self.conn.commit()
-
-class HandledLogger(_Logger):
-    ''' Log utility for handled policy violations
-    '''
-    def __init__(self, log_dir):
-        _Logger.__init__(self, 'handled', log_dir, ( CREATE_HANDLED, ), use_date=False)
-
-    def exists(self, uid, proto, app, dport, dest):
-        ''' Check if a violation was already handled
-        '''
-        return self.conn.execute(EXISTS_HANDLED, (uid, proto, app, dport, dest)).next()[0] > 0

@@ -70,7 +70,18 @@ install :
 	fi
 	# install software
 	@cp -r build/sbin/* $(ROOT)/sbin/.
-	@cp -r build/${BASE}/* $(ROOT)/${BASE}/.
+	@if [ ! -d $(ROOT)/$(BASE)/lockdown ]; then \
+		mkdir $(ROOT)/${BASE}/lockdown; \
+	fi
+	@cp -r build/${BASE}/lockdown/bin $(ROOT)/${BASE}/lockdown/.
+	@cp -r build/${BASE}/lockdown/lib $(ROOT)/${BASE}/lockdown/.
+	@if [ ! -d $(ROOT)/$(BASE)/lockdown/conf ]; then \
+		cp -r build/${BASE}/lockdown/conf $(ROOT)/${BASE}/lockdown/.; \
+	fi
+	@cp -r build/${BASE}/lockdown/conf/test $(ROOT)/${BASE}/lockdown/conf/.
+	@if [ ! -d $(ROOT)/$(BASE)/lockdown/log ]; then \
+		mkdir $(ROOT)/${BASE}/lockdown/log; \
+	fi
 	# copy documentation
 	@cp -r $(BUILD_DIR)$(DOC_DIR)/* $(ROOT)$(DOC_DIR)
 

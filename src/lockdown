@@ -10,7 +10,7 @@ from lockdown  import conninfo
 from daemonize import Daemonize
 
 from lockdown.connassert import ApplicationAssertions
-from lockdown.common     import read_json, pack_conn
+from lockdown.common     import read_json, check_unknown, pack_conn
 from lockdown.connlog    import ConnectionLogger, ViolationLogger
 from lockdown.conntables import add_new_hook, rem_new_hook, NFQueueReader
 
@@ -65,11 +65,13 @@ def callback(ts, payload):
     ( pid, app, uid ) = proc = conninfo.get_conn_process(proto, sip, sport, dip, dport)
 
     # handle requests that start a listener
-    if app is None:
-        ( pid, app, uid ) = proc = conninfo.get_list_process(proto, sip, sport)
+    if app is None or app == '':
+        ( pid2, app2, uid2 ) = proc2 = conninfo.get_list_process(proto, sip, sport)
+        ( pid, app, uid )    = check_unknown(pid, app, uid, pid2, app2, uid2 )
+        del proc2
 
     # determine if the connection is allowed or not
-    if app is None:
+    if app == 'UNKOWN':
         outcome = NO_APP
     elif app_assertions.check_app(uid, proto, app, dport, dip):
         outcome = ALLOWED
@@ -82,6 +84,8 @@ def callback(ts, payload):
     else:
         payload.set_verdict(NF_ACCEPT)
 
+    if __debug__:
+        print "%d, %d, %d, %d, %s, %s" % ( uid, proto, dport, outcome, dip, repr(app))
     if conf.get('verbose', 0) > 0:
         packed_conn = pack_conn(uid, proto, dport, outcome, packet.dst, app)
         conn_logger.stdin.write(packed_conn)
